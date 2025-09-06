@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Comissões - Vendedores</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/esm/index.js" type="module"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.2s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Ícones SVG como componentes
+        const DollarSign = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+        );
+
+        const TrendingUp = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+        );
+
+        const Calendar = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const Award = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+        );
+
+        const Eye = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+        );
+
+        const EyeOff = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+            </svg>
+        );
+
+        const Plus = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+
+        const Save = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+        );
+
+        // Componente principal
+        const ComissoesApp = () => {
+            const [currentView, setCurrentView] = useState('vendedor');
+            const [selectedVendedor, setSelectedVendedor] = useState('joao');
+            const [showValues, setShowValues] = useState(true);
+            const [vendas, setVendas] = useState([
+                { id: 1, vendedor: 'joao', cliente: 'Empresa ABC', valorVenda: 50000, valorEntrada: 25000, dataVenda: '2024-08-15', comissao: 5000, status: 'paga', parcelas: 1 },
+                { id: 2, vendedor: 'joao', cliente: 'Tech Solutions', valorVenda: 30000, valorEntrada: 6000, dataVenda: '2024-08-20', comissao: 3000, status: 'parcelada', parcelas: 6, parcelasPagas: 2 },
+                { id: 3, vendedor: 'maria', cliente: 'StartupXYZ', valorVenda: 80000, valorEntrada: 40000, dataVenda: '2024-08-10', comissao: 8000, status: 'paga', parcelas: 1 },
+                { id: 4, vendedor: 'pedro', cliente: 'Inovação Ltda', valorVenda: 25000, valorEntrada: 0, dataVenda: '2024-08-05', comissao: 2500, status: 'parcelada', parcelas: 10, parcelasPagas: 3 },
+                { id: 5, vendedor: 'ana', cliente: 'MegaCorp', valorVenda: 100000, valorEntrada: 60000, dataVenda: '2024-09-01', comissao: 10000, status: 'paga', parcelas: 1 }
+            ]);
+
+            const [novaVenda, setNovaVenda] = useState({
+                vendedor: '',
+                cliente: '',
+                valorVenda: '',
+                valorEntrada: '',
+                dataVenda: '',
+                comissao: ''
+            });
+
+            const vendedores = [
+                { id: 'joao', nome: 'João Silva', avatar: '👨‍💼' },
+                { id: 'maria', nome: 'Maria Santos', avatar: '👩‍💼' },
+                { id: 'pedro', nome: 'Pedro Costa', avatar: '👨‍💻' },
+                { id: 'ana', nome: 'Ana Oliveira', avatar: '👩‍💻' },
+                { id: 'carlos', nome: 'Carlos Lima', avatar: '👨‍🎯' },
+                { id: 'lucia', nome: 'Lucia Ferreira', avatar: '👩‍🎯' }
+            ];
+
+            const calcularComissao = (valorVenda, valorEntrada, percentualComissao = 10) => {
+                const percentualEntrada = (valorEntrada / valorVenda) * 100;
+                let parcelas = 1;
+                
+                if (percentualEntrada >= 40) {
+                    parcelas = 1;
+                } else if (percentualEntrada > 0) {
+                    parcelas = Math.ceil(6 * (1 - percentualEntrada / 40));
+                } else {
+                    parcelas = 10;
+                }
+                
+                const valorComissao = (valorVenda * percentualComissao) / 100;
+                return { valorComissao, parcelas };
+            };
+
+            const dadosVendedor = vendas.filter(v => v.vendedor === selectedVendedor);
+            const totalComissoes = dadosVendedor.reduce((acc, v) => acc + v.comissao, 0);
+            const comissoesPagas = dadosVendedor.filter(v => v.status === 'paga').reduce((acc, v) => acc + v.comissao, 0);
+            const comissoesAReceber = dadosVendedor.filter(v => v.status === 'parcelada').reduce((acc, v) => {
+                const parcelasRestantes = v.parcelas - (v.parcelasPagas || 0);
+                return acc + (v.comissao / v.parcelas) * parcelasRestantes;
+            }, 0);
+
+            const dadosRanking = vendedores.map(vendedor => {
+                const vendasVendedor = vendas.filter(v => v.vendedor === vendedor.id);
+                const total = vendasVendedor.reduce((acc, v) => acc + v.comissao, 0);
+                return { ...vendedor, total };
+            }).sort((a, b) => b.total - a.total);
+
+            const adicionarVenda = () => {
+                if (!novaVenda.vendedor || !novaVenda.cliente || !novaVenda.valorVenda) return;
+                
+                const { valorComissao, parcelas } = calcularComissao(
+                    parseFloat(novaVenda.valorVenda),
+                    parseFloat(novaVenda.valorEntrada || 0)
+                );
+                
+                const vendaCompleta = {
+                    id: Date.now(),
+                    vendedor: novaVenda.vendedor,
+                    cliente: novaVenda.cliente,
+                    valorVenda: parseFloat(novaVenda.valorVenda),
+                    valorEntrada: parseFloat(novaVenda.valorEntrada || 0),
+                    dataVenda: novaVenda.dataVenda,
+                    comissao: novaVenda.comissao ? parseFloat(novaVenda.comissao) : valorComissao,
+                    status: parcelas === 1 ? 'paga' : 'parcelada',
+                    parcelas: parcelas,
+                    parcelasPagas: parcelas === 1 ? 1 : 0
+                };
+                
+                setVendas([...vendas, vendaCompleta]);
+                setNovaVenda({ vendedor: '', cliente: '', valorVenda: '', valorEntrada: '', dataVenda: '', comissao: '' });
+            };
+
+            const formatarMoeda = (valor) => {
+                if (!showValues) return "R$ •••••";
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(valor);
+            };
+
+            if (currentView === 'admin') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                        <div className="bg-white shadow-sm border-b">
+                            <div className="max-w-7xl mx-auto px-4 py-4">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-4">
+                                        <button
+                                            onClick={() => setCurrentView('vendedor')}
+                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            👨‍💼 Visão Vendedor
+                                        </button>
+                                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                                            ⚙️ Painel Admin
+                                        </button>
+                                    </div>
+                                    <h1 className="text-2xl font-bold text-gray-900">Painel Administrativo</h1>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto px-4 py-6">
+                            {/* Resumo Geral */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                                <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                    <div className="flex items-center">
+                                        <div className="p-2 bg-green-100 rounded-lg">
+                                            <DollarSign />
+                                        </div>
+                                        <div className="ml-4">
+                                            <p className="text-sm text-gray-600">Total Comissões</p>
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {formatarMoeda(vendas.reduce((acc, v) => acc + v.comissao, 0))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                    <div className="flex items-center">
+                                        <div className="p-2 bg-blue-100 rounded-lg">
+                                            <TrendingUp />
+                                        </div>
+                                        <div className="ml-4">
+                                            <p className="text-sm text-gray-600">Vendas Este Mês</p>
+                                            <p className="text-2xl font-bold text-blue-600">{vendas.length}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                    <div className="flex items-center">
+                                        <div className="p-2 bg-purple-100 rounded-lg">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-4">
+                                            <p className="text-sm text-gray-600">Vendedores Ativos</p>
+                                            <p className="text-2xl font-bold text-purple-600">{vendedores.length}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                    <div className="flex items-center">
+                                        <div className="p-2 bg-orange-100 rounded-lg">
+                                            <Calendar />
+                                        </div>
+                                        <div className="ml-4">
+                                            <p className="text-sm text-gray-600">A Receber</p>
+                                            <p className="text-2xl font-bold text-orange-600">
+                                                {formatarMoeda(vendas.filter(v => v.status === 'parcelada').reduce((acc, v) => {
+                                                    const restantes = v.parcelas - (v.parcelasPagas || 0);
+                                                    return acc + (v.comissao / v.parcelas) * restantes;
+                                                }, 0))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Nova Venda */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm mb-8 fade-in">
+                                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                    <Plus />
+                                    <span className="ml-2">Nova Venda</span>
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                                    <select
+                                        value={novaVenda.vendedor}
+                                        onChange={(e) => setNovaVenda({...novaVenda, vendedor: e.target.value})}
+                                        className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        <option value="">Selecionar Vendedor</option>
+                                        {vendedores.map(v => (
+                                            <option key={v.id} value={v.id}>{v.nome}</option>
+                                        ))}
+                                    </select>
+
+                                    <input
+                                        type="text"
+                                        placeholder="Cliente"
+                                        value={novaVenda.cliente}
+                                        onChange={(e) => setNovaVenda({...novaVenda, cliente: e.target.value})}
+                                        className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+
+                                    <input
+                                        type="number"
+                                        placeholder="Valor da Venda"
+                                        value={novaVenda.valorVenda}
+                                        onChange={(e) => setNovaVenda({...novaVenda, valorVenda: e.target.value})}
+                                        className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+
+                                    <input
+                                        type="number"
+                                        placeholder="Valor da Entrada"
+                                        value={novaVenda.valorEntrada}
+                                        onChange={(e) => setNovaVenda({...novaVenda, valorEntrada: e.target.value})}
+                                        className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+
+                                    <input
+                                        type="date"
+                                        value={novaVenda.dataVenda}
+                                        onChange={(e) => setNovaVenda({...novaVenda, dataVenda: e.target.value})}
+                                        className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+
+                                    <button
+                                        onClick={adicionarVenda}
+                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                    >
+                                        <Save />
+                                        <span className="ml-2">Salvar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Lista de Vendas */}
+                            <div className="bg-white rounded-xl shadow-sm overflow-hidden fade-in">
+                                <div className="p-6 border-b border-gray-200">
+                                    <h3 className="text-lg font-semibold">Todas as Vendas</h3>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendedor</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Venda</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comissão</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parcelas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {vendas.map((venda) => (
+                                                <tr key={venda.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <span className="text-2xl mr-2">
+                                                                {vendedores.find(v => v.id === venda.vendedor)?.avatar}
+                                                            </span>
+                                                            {vendedores.find(v => v.id === venda.vendedor)?.nome}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">{venda.cliente}</td>
+                                                    <td className="px-6 py-4 font-medium">{formatarMoeda(venda.valorVenda)}</td>
+                                                    <td className="px-6 py-4">{formatarMoeda(venda.valorEntrada)}</td>
+                                                    <td className="px-6 py-4 font-semibold text-green-600">{formatarMoeda(venda.comissao)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                            venda.status === 'paga' 
+                                                                ? 'bg-green-100 text-green-800' 
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                            {venda.status === 'paga' ? '✅ Paga' : '⏳ Parcelada'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {venda.parcelas === 1 ? 'À vista' : `${venda.parcelasPagas || 0}/${venda.parcelas}`}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                    {/* Header */}
+                    <div className="bg-white shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div className="flex items-center space-x-4">
+                                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                                        👨‍💼 Visão Vendedor
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentView('admin')}
+                                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    >
+                                        ⚙️ Painel Admin
+                                    </button>
+                                    <select
+                                        value={selectedVendedor}
+                                        onChange={(e) => setSelectedVendedor(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        {vendedores.map(vendedor => (
+                                            <option key={vendedor.id} value={vendedor.id}>
+                                                {vendedor.avatar} {vendedor.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <button
+                                        onClick={() => setShowValues(!showValues)}
+                                        className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                                        title={showValues ? "Ocultar valores" : "Mostrar valores"}
+                                    >
+                                        {showValues ? <Eye /> : <EyeOff />}
+                                    </button>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-3xl">{vendedores.find(v => v.id === selectedVendedor)?.avatar}</span>
+                                        <span className="font-medium">{vendedores.find(v => v.id === selectedVendedor)?.nome}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 py-6">
+                        {/* Cards de Resumo */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                <div className="flex items-center">
+                                    <div className="p-3 bg-green-100 rounded-xl">
+                                        <DollarSign />
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm text-gray-600">Saldo Total</p>
+                                        <p className="text-2xl font-bold text-green-600">{formatarMoeda(totalComissoes)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                <div className="flex items-center">
+                                    <div className="p-3 bg-blue-100 rounded-xl">
+                                        <TrendingUp />
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm text-gray-600">Já Recebido</p>
+                                        <p className="text-2xl font-bold text-blue-600">{formatarMoeda(comissoesPagas)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                <div className="flex items-center">
+                                    <div className="p-3 bg-orange-100 rounded-xl">
+                                        <Calendar />
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm text-gray-600">A Receber</p>
+                                        <p className="text-2xl font-bold text-orange-600">{formatarMoeda(comissoesAReceber)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm card-hover fade-in">
+                                <div className="flex items-center">
+                                    <div className="p-3 bg-purple-100 rounded-xl">
+                                        <Award />
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm text-gray-600">Ranking</p>
+                                        <p className="text-2xl font-bold text-purple-600">
+                                            #{dadosRanking.findIndex(v => v.id === selectedVendedor) + 1}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Ranking da Equipe */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm fade-in">
+                                <h3 className="text-lg font-semibold mb-4">🏆 Ranking da Equipe</h3>
+                                <div className="space-y-4">
+                                    {dadosRanking.map((vendedor, index) => (
+                                        <div
+                                            key={vendedor.id}
+                                            className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
+                                                vendedor.id === selectedVendedor 
+                                                    ? 'bg-blue-50 border-2 border-blue-200' 
+                                                    : 'bg-gray-50 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
+                                                    index === 0 ? 'bg-yellow-500' :
+                                                    index === 1 ? 'bg-gray-400' :
+                                                    index === 2 ? 'bg-orange-500' : 'bg-gray-300'
+                                                }`}>
+                                                    {index + 1}
+                                                </div>
+                                                <span className="text-2xl">{vendedor.avatar}</span>
+                                                <span className="font-medium">{vendedor.nome}</span>
+                                            </div>
+                                            <span className="font-bold text-green-600">
+                                                {formatarMoeda(vendedor.total)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Gráfico Simples */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm fade-in">
+                                <h3 className="text-lg font-semibold mb-4">📈 Evolução Mensal</h3>
+                                <div className="space-y-3">
+                                    {[
+                                        { mes: 'Mai', valor: showValues ? 4500 : 0, percent: 60 },
+                                        { mes: 'Jun', valor: showValues ? 6200 : 0, percent: 80 },
+                                        { mes: 'Jul', valor: showValues ? 5800 : 0, percent: 75 },
+                                        { mes: 'Ago', valor: showValues ? 8000 : 0, percent: 100 },
+                                        { mes: 'Set', valor: showValues ? 7200 : 0, percent: 90 }
+                                    ].map((item, index) => (
+                                        <div key={item.mes} className="flex items-center">
+                                            <div className="w-12 text-sm font-medium">{item.mes}</div>
+                                            <div className="flex-1 mx-4">
+                                                <div className="bg-gray-200 rounded-full h-4">
+                                                    <div 
+                                                        className="bg-blue-500 h-4 rounded-full transition-all duration-500 ease-out"
+                                                        style={{ width: `${item.percent}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            <div className="w-20 text-sm font-bold text-blue-600">
+                                                {formatarMoeda(item.valor)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Histórico de Vendas */}
+                        <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden fade-in">
+                            <div className="p-6 border-b border-gray-200">
+                                <h3 className="text-lg font-semibold">📋 Minhas Vendas</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Venda</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comissão</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parcelas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {dadosVendedor.map((venda) => (
+                                            <tr key={venda.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-medium">{venda.cliente}</td>
+                                                <td className="px-6 py-4 text-gray-600">
+                                                    {new Date(venda.dataVenda).toLocaleDateString('pt-BR')}
+                                                </td>
+                                                <td className="px-6 py-4">{formatarMoeda(venda.valorVenda)}</td>
+                                                <td className="px-6 py-4 font-semibold text-green-600">{formatarMoeda(venda.comissao)}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                                        venda.status === 'paga' 
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                        {venda.status === 'paga' ? '✅ Paga' : '⏳ Parcelada'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {venda.status === 'paga' 
+                                                        ? 'À vista' 
+                                                        : `${venda.parcelasPagas || 0}/${venda.parcelas} pagas`
+                                                    }
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Renderizar o app
+        ReactDOM.render(<ComissoesApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
