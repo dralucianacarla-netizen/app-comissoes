@@ -3,8 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Comissões - Versão Completa</title>
+    <title>Sistema de Comissões - Firebase</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0I8tWPVrHLxzhxja7gKgK9jKu9nRVZR8",
+            authDomain: "app-comissoes.firebaseapp.com",
+            projectId: "app-comissoes",
+            storageBucket: "app-comissoes.firebasestorage.app",
+            messagingSenderId: "223601290975",
+            appId: "1:223601290975:web:0e2197a34999d28f58036a"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Disponibilizar globalmente
+        window.firebase = { db, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -249,6 +275,12 @@
             margin-top: 10px;
         }
 
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
         .ranking-container {
             display: grid;
             gap: 15px;
@@ -425,7 +457,7 @@
     <div class="container">
         <!-- Tela de Login -->
         <div id="login-screen" class="login-container">
-            <h1>Sistema de Comissões</h1>
+            <h1>🔥 Sistema de Comissões</h1>
             <div class="login-form">
                 <div class="form-group">
                     <label for="userType">Tipo de Usuário:</label>
@@ -447,6 +479,7 @@
                 
                 <button class="btn" onclick="login()">Entrar</button>
                 <div id="login-error" class="error" style="display: none;"></div>
+                <div id="loading" class="loading" style="display: none;">🔄 Carregando...</div>
             </div>
         </div>
 
@@ -457,6 +490,7 @@
                     <h1>💼 Dashboard - <span id="vendedor-name"></span></h1>
                 </div>
                 <div class="user-info">
+                    <span style="color: #28a745;">🟢 Online</span>
                     <button class="btn btn-danger" onclick="logout()">Sair</button>
                 </div>
             </div>
@@ -522,6 +556,7 @@
                         </tr>
                     </thead>
                     <tbody id="vendas-vendedor">
+                        <tr><td colspan="6" class="loading">🔄 Carregando vendas...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -537,6 +572,7 @@
                     <button class="btn btn-success" onclick="openNewSaleModal()">+ Nova Venda</button>
                     <button class="btn btn-info" onclick="openUserManagementModal()">👥 Vendedores</button>
                     <button class="btn btn-secondary" onclick="openCommissionRulesModal()">📋 Regras</button>
+                    <span style="color: #28a745;">🟢 Online</span>
                     <button class="btn btn-danger" onclick="logout()">Sair</button>
                 </div>
             </div>
@@ -597,6 +633,7 @@
                         </tr>
                     </thead>
                     <tbody id="todas-vendas">
+                        <tr><td colspan="8" class="loading">🔄 Carregando vendas...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -641,7 +678,10 @@
                         <option value="4">4 parcelas</option>
                         <option value="5">5 parcelas</option>
                         <option value="6">6 parcelas</option>
-                        <option value="12">12 parcelas</option>
+                        <option value="7">7 parcelas</option>
+                        <option value="8">8 parcelas</option>
+                        <option value="9">9 parcelas</option>
+                        <option value="10">10 parcelas</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -707,7 +747,12 @@
                             <option value="2">2 parcelas</option>
                             <option value="3">3 parcelas</option>
                             <option value="4">4 parcelas</option>
+                            <option value="5">5 parcelas</option>
                             <option value="6">6 parcelas</option>
+                            <option value="7">7 parcelas</option>
+                            <option value="8">8 parcelas</option>
+                            <option value="9">9 parcelas</option>
+                            <option value="10">10 parcelas</option>
                         </select>
                     </div>
                 </div>
@@ -717,57 +762,248 @@
     </div>
 
     <script>
-        // Dados do sistema
+        // Variáveis globais
         let currentUser = null;
         let salesData = [];
-        let users = [
-            { username: 'joao', password: '123', type: 'vendedor', name: 'João Silva' },
-            { username: 'maria', password: '123', type: 'vendedor', name: 'Maria Santos' },
-            { username: 'pedro', password: '123', type: 'vendedor', name: 'Pedro Costa' },
-            { username: 'admin', password: 'admin123', type: 'admin', name: 'Administrador' }
-        ];
-        let commissionRules = [
-            { name: 'Padrão', percentage: 5, installments: 1 },
-            { name: 'Vendas acima de R$ 5000', percentage: 7, installments: 2 },
-            { name: 'Vendas acima de R$ 10000', percentage: 10, installments: 3 }
-        ];
-
+        let users = [];
+        let commissionRules = [];
         let vendedorChart = null;
         let adminChart = null;
+        let salesListener = null;
+        let usersListener = null;
+        let rulesListener = null;
+
+        // Sistema de inicialização
+        document.addEventListener('DOMContentLoaded', async function() {
+            showLoading();
+            await initializeFirebaseData();
+            hideLoading();
+        });
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Inicializar dados do Firebase
+        async function initializeFirebaseData() {
+            try {
+                // Carregar usuários
+                await loadUsers();
+                
+                // Carregar regras de comissão
+                await loadCommissionRules();
+                
+                // Se não houver dados, criar dados iniciais
+                if (users.length === 0) {
+                    await createInitialData();
+                }
+                
+                console.log('✅ Firebase inicializado com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao inicializar Firebase:', error);
+                showError('Erro ao conectar com o servidor. Verifique sua conexão.');
+            }
+        }
+
+        // Criar dados iniciais no Firebase
+        async function createInitialData() {
+            const { db, collection, addDoc } = window.firebase;
+            
+            // Usuários iniciais
+            const initialUsers = [
+                { username: 'joao', password: '123', type: 'vendedor', name: 'João Silva' },
+                { username: 'maria', password: '123', type: 'vendedor', name: 'Maria Santos' },
+                { username: 'pedro', password: '123', type: 'vendedor', name: 'Pedro Costa' },
+                { username: 'admin', password: 'admin123', type: 'admin', name: 'Administrador' }
+            ];
+
+            // Regras iniciais
+            const initialRules = [
+                { name: 'Padrão', percentage: 5, installments: 1 },
+                { name: 'Vendas acima de R$ 5000', percentage: 7, installments: 2 },
+                { name: 'Vendas acima de R$ 10000', percentage: 10, installments: 3 }
+            ];
+
+            try {
+                // Adicionar usuários
+                for (const user of initialUsers) {
+                    await addDoc(collection(db, 'users'), user);
+                }
+
+                // Adicionar regras
+                for (const rule of initialRules) {
+                    await addDoc(collection(db, 'commissionRules'), rule);
+                }
+
+                // Gerar algumas vendas de exemplo
+                await generateSampleSales();
+                
+                console.log('✅ Dados iniciais criados!');
+            } catch (error) {
+                console.error('❌ Erro ao criar dados iniciais:', error);
+            }
+        }
+
+        // Gerar vendas de exemplo
+        async function generateSampleSales() {
+            const { db, collection, addDoc } = window.firebase;
+            const months = ['2024-01-15', '2024-02-20', '2024-03-10', '2024-04-05', '2024-05-12'];
+            const vendedores = ['joao', 'maria', 'pedro'];
+            const clientes = ['Empresa ABC', 'Empresa XYZ', 'Empresa DEF', 'Empresa GHI', 'Empresa JKL'];
+            
+            for (const month of months) {
+                for (const vendedor of vendedores) {
+                    const numVendas = Math.floor(Math.random() * 3) + 1;
+                    for (let i = 0; i < numVendas; i++) {
+                        const valor = Math.floor(Math.random() * 15000) + 1000;
+                        const comissaoPerc = valor > 10000 ? 10 : valor > 5000 ? 7 : 5;
+                        const installments = Math.floor(Math.random() * 10) + 1;
+                        const paidInstallments = Math.floor(Math.random() * (installments + 1));
+                        
+                        const saleData = {
+                            data: new Date(month),
+                            vendedor: vendedor,
+                            cliente: clientes[Math.floor(Math.random() * clientes.length)],
+                            valor: valor,
+                            comissaoPerc: comissaoPerc,
+                            comissaoValor: (valor * comissaoPerc) / 100,
+                            installments: installments,
+                            paidInstallments: paidInstallments,
+                            createdAt: new Date()
+                        };
+                        
+                        await addDoc(collection(db, 'sales'), saleData);
+                    }
+                }
+            }
+        }
+
+        // Carregar usuários do Firebase
+        async function loadUsers() {
+            const { db, collection, getDocs, onSnapshot } = window.firebase;
+            
+            // Listener em tempo real
+            if (usersListener) usersListener();
+            usersListener = onSnapshot(collection(db, 'users'), (snapshot) => {
+                users = [];
+                snapshot.forEach((doc) => {
+                    users.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (currentUser && currentUser.type === 'admin') {
+                    populateVendedorSelect();
+                    loadUsersList();
+                }
+            });
+        }
+
+        // Carregar vendas do Firebase
+        async function loadSales() {
+            const { db, collection, onSnapshot, query, orderBy } = window.firebase;
+            
+            // Listener em tempo real para vendas
+            if (salesListener) salesListener();
+            salesListener = onSnapshot(query(collection(db, 'sales'), orderBy('data', 'desc')), (snapshot) => {
+                salesData = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    salesData.push({ 
+                        id: doc.id, 
+                        ...data,
+                        data: data.data.toDate() // Converter Timestamp para Date
+                    });
+                });
+                
+                // Atualizar interface baseado no tipo de usuário
+                if (currentUser) {
+                    if (currentUser.type === 'vendedor') {
+                        updateVendedorStats();
+                        loadVendedorSales();
+                        loadRanking();
+                        createVendedorChart();
+                    } else if (currentUser.type === 'admin') {
+                        updateAdminStats();
+                        loadAllSales();
+                        loadAdminRanking();
+                        createAdminChart();
+                    }
+                }
+            });
+        }
+
+        // Carregar regras de comissão do Firebase
+        async function loadCommissionRules() {
+            const { db, collection, onSnapshot } = window.firebase;
+            
+            if (rulesListener) rulesListener();
+            rulesListener = onSnapshot(collection(db, 'commissionRules'), (snapshot) => {
+                commissionRules = [];
+                snapshot.forEach((doc) => {
+                    commissionRules.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (currentUser && currentUser.type === 'admin') {
+                    loadCommissionRulesList();
+                }
+            });
+        }
 
         // Função de login
-        function login() {
+        async function login() {
             const userType = document.getElementById('userType').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
 
-            const user = users.find(u => 
-                u.username === username && 
-                u.password === password && 
-                u.type === userType
-            );
+            showLoading();
 
-            if (user) {
-                currentUser = user;
-                document.getElementById('login-screen').style.display = 'none';
-                
-                if (userType === 'vendedor') {
-                    showVendedorDashboard();
+            try {
+                const user = users.find(u => 
+                    u.username === username && 
+                    u.password === password && 
+                    u.type === userType
+                );
+
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                    // Carregar vendas após login
+                    await loadSales();
+                    
+                    if (userType === 'vendedor') {
+                        showVendedorDashboard();
+                    } else {
+                        showAdminDashboard();
+                    }
+                    
+                    errorDiv.style.display = 'none';
                 } else {
-                    showAdminDashboard();
+                    errorDiv.textContent = 'Usuário, senha ou tipo incorretos!';
+                    errorDiv.style.display = 'block';
                 }
-                
-                errorDiv.style.display = 'none';
-            } else {
-                errorDiv.textContent = 'Usuário, senha ou tipo incorretos!';
+            } catch (error) {
+                console.error('Erro no login:', error);
+                errorDiv.textContent = 'Erro ao fazer login. Tente novamente.';
                 errorDiv.style.display = 'block';
             }
+
+            hideLoading();
         }
 
         // Função de logout
         function logout() {
             currentUser = null;
+            
+            // Parar listeners
+            if (salesListener) salesListener();
+            if (usersListener) usersListener();
+            if (rulesListener) rulesListener();
+            
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('vendedor-dashboard').style.display = 'none';
             document.getElementById('admin-dashboard').style.display = 'none';
@@ -791,22 +1027,12 @@
         function showVendedorDashboard() {
             document.getElementById('vendedor-dashboard').style.display = 'block';
             document.getElementById('vendedor-name').textContent = currentUser.name;
-            
-            updateVendedorStats();
-            loadVendedorSales();
-            loadRanking();
-            createVendedorChart();
         }
 
         // Mostrar dashboard do admin
         function showAdminDashboard() {
             document.getElementById('admin-dashboard').style.display = 'block';
-            
-            updateAdminStats();
-            loadAllSales();
-            loadAdminRanking();
             populateVendedorSelect();
-            createAdminChart();
         }
 
         // Atualizar estatísticas do vendedor
@@ -925,7 +1151,7 @@
                 return;
             }
             
-            tbody.innerHTML = salesData.map((sale, index) => {
+            tbody.innerHTML = salesData.map((sale) => {
                 const vendedorName = users.find(u => u.username === sale.vendedor)?.name || sale.vendedor;
                 const paidInstallments = sale.paidInstallments || 0;
                 const totalInstallments = sale.installments || 1;
@@ -941,10 +1167,10 @@
                         <td><span class="status-badge status-${status.class}">${status.text}</span></td>
                         <td>
                             <div>${paidInstallments}/${totalInstallments}</div>
-                            <button class="btn btn-small btn-info" onclick="updateInstallments(${index})">Atualizar</button>
+                            <button class="btn btn-small btn-info" onclick="updateInstallments('${sale.id}', ${paidInstallments}, ${totalInstallments})">Atualizar</button>
                         </td>
                         <td>
-                            <button class="btn btn-danger btn-small" onclick="deleteSale(${index})">Excluir</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteSale('${sale.id}')">Excluir</button>
                         </td>
                     </tr>
                 `;
@@ -1007,7 +1233,9 @@
 
         // Criar gráfico do vendedor
         function createVendedorChart() {
-            const ctx = document.getElementById('vendedor-chart').getContext('2d');
+            const ctx = document.getElementById('vendedor-chart')?.getContext('2d');
+            if (!ctx) return;
+            
             const vendedorSales = salesData.filter(sale => sale.vendedor === currentUser.username);
             
             // Agrupar vendas por mês
@@ -1101,7 +1329,8 @@
 
         // Criar gráfico do admin
         function createAdminChart() {
-            const ctx = document.getElementById('admin-chart').getContext('2d');
+            const ctx = document.getElementById('admin-chart')?.getContext('2d');
+            if (!ctx) return;
             
             // Agrupar vendas por mês
             const monthlyData = {};
@@ -1185,34 +1414,34 @@
         }
 
         // Atualizar parcelas de comissão
-        function updateInstallments(index) {
-            const sale = salesData[index];
-            const currentPaid = sale.paidInstallments || 0;
-            const total = sale.installments || 1;
-            
+        async function updateInstallments(saleId, currentPaid, total) {
             const newPaid = prompt(`Quantas parcelas foram pagas?\nAtual: ${currentPaid}/${total}`, currentPaid);
             
             if (newPaid !== null && !isNaN(newPaid) && newPaid >= 0 && newPaid <= total) {
-                salesData[index].paidInstallments = parseInt(newPaid);
-                updateAdminStats();
-                loadAllSales();
-                loadAdminRanking();
+                try {
+                    const { db, doc, updateDoc } = window.firebase;
+                    await updateDoc(doc(db, 'sales', saleId), {
+                        paidInstallments: parseInt(newPaid)
+                    });
+                    
+                    console.log('✅ Parcelas atualizadas!');
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar parcelas:', error);
+                    alert('Erro ao atualizar parcelas. Tente novamente.');
+                }
             }
         }
 
-        // Abrir modal nova venda
+        // Modals e formulários
         function openNewSaleModal() {
             document.getElementById('newSaleModal').style.display = 'block';
-            populateVendedorSelect();
         }
 
-        // Fechar modal nova venda
         function closeNewSaleModal() {
             document.getElementById('newSaleModal').style.display = 'none';
             clearNewSaleForm();
         }
 
-        // Limpar formulário nova venda
         function clearNewSaleForm() {
             document.getElementById('vendedor-select').value = '';
             document.getElementById('cliente-input').value = '';
@@ -1222,7 +1451,6 @@
             document.getElementById('status-input').value = 'pendente';
         }
 
-        // Popular select de vendedores
         function populateVendedorSelect() {
             const select = document.getElementById('vendedor-select');
             const vendedores = users.filter(u => u.type === 'vendedor');
@@ -1232,7 +1460,7 @@
         }
 
         // Adicionar nova venda
-        function addSale() {
+        async function addSale() {
             const vendedor = document.getElementById('vendedor-select').value;
             const cliente = document.getElementById('cliente-input').value;
             const valor = parseFloat(document.getElementById('valor-input').value);
@@ -1245,43 +1473,49 @@
                 return;
             }
             
-            const comissaoValor = (valor * comissaoPerc) / 100;
-            const paidInstallments = status === 'pago' ? parcelas : 0;
-            
-            const newSale = {
-                data: new Date(),
-                vendedor: vendedor,
-                cliente: cliente,
-                valor: valor,
-                comissaoPerc: comissaoPerc,
-                comissaoValor: comissaoValor,
-                installments: parcelas,
-                paidInstallments: paidInstallments
-            };
-            
-            salesData.push(newSale);
-            closeNewSaleModal();
-            updateAdminStats();
-            loadAllSales();
-            loadAdminRanking();
-            createAdminChart();
+            try {
+                const { db, collection, addDoc } = window.firebase;
+                const comissaoValor = (valor * comissaoPerc) / 100;
+                const paidInstallments = status === 'pago' ? parcelas : 0;
+                
+                const newSale = {
+                    data: new Date(),
+                    vendedor: vendedor,
+                    cliente: cliente,
+                    valor: valor,
+                    comissaoPerc: comissaoPerc,
+                    comissaoValor: comissaoValor,
+                    installments: parcelas,
+                    paidInstallments: paidInstallments,
+                    createdAt: new Date()
+                };
+                
+                await addDoc(collection(db, 'sales'), newSale);
+                closeNewSaleModal();
+                console.log('✅ Venda adicionada!');
+            } catch (error) {
+                console.error('❌ Erro ao adicionar venda:', error);
+                alert('Erro ao adicionar venda. Tente novamente.');
+            }
         }
 
         // Excluir venda
-        function deleteSale(index) {
+        async function deleteSale(saleId) {
             if (confirm('Tem certeza que deseja excluir esta venda?')) {
-                salesData.splice(index, 1);
-                updateAdminStats();
-                loadAllSales();
-                loadAdminRanking();
-                createAdminChart();
+                try {
+                    const { db, doc, deleteDoc } = window.firebase;
+                    await deleteDoc(doc(db, 'sales', saleId));
+                    console.log('✅ Venda excluída!');
+                } catch (error) {
+                    console.error('❌ Erro ao excluir venda:', error);
+                    alert('Erro ao excluir venda. Tente novamente.');
+                }
             }
         }
 
         // Modal gerenciar usuários
         function openUserManagementModal() {
             document.getElementById('userManagementModal').style.display = 'block';
-            loadUsersList();
         }
 
         function closeUserManagementModal() {
@@ -1292,20 +1526,20 @@
             const container = document.getElementById('users-list');
             const vendedores = users.filter(u => u.type === 'vendedor');
             
-            container.innerHTML = vendedores.map((user, index) => `
+            container.innerHTML = vendedores.map((user) => `
                 <div class="user-item">
                     <div>
                         <strong>${user.name}</strong> (${user.username})
                     </div>
                     <div>
-                        <button class="btn btn-info btn-small" onclick="editUser('${user.username}')">Editar</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteUser('${user.username}')">Excluir</button>
+                        <button class="btn btn-info btn-small" onclick="editUser('${user.id}', '${user.name}')">Editar</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteUser('${user.id}')">Excluir</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function addUser() {
+        async function addUser() {
             const name = document.getElementById('new-user-name').value;
             const username = document.getElementById('new-username').value;
             const password = document.getElementById('new-password').value;
@@ -1320,46 +1554,52 @@
                 return;
             }
             
-            users.push({
-                username: username,
-                password: password,
-                type: 'vendedor',
-                name: name
-            });
-            
-            document.getElementById('new-user-name').value = '';
-            document.getElementById('new-username').value = '';
-            document.getElementById('new-password').value = '';
-            
-            loadUsersList();
-            populateVendedorSelect();
+            try {
+                const { db, collection, addDoc } = window.firebase;
+                await addDoc(collection(db, 'users'), {
+                    username: username,
+                    password: password,
+                    type: 'vendedor',
+                    name: name
+                });
+                
+                document.getElementById('new-user-name').value = '';
+                document.getElementById('new-username').value = '';
+                document.getElementById('new-password').value = '';
+                
+                console.log('✅ Vendedor adicionado!');
+            } catch (error) {
+                console.error('❌ Erro ao adicionar vendedor:', error);
+                alert('Erro ao adicionar vendedor. Tente novamente.');
+            }
         }
 
-        function editUser(username) {
-            const user = users.find(u => u.username === username);
-            if (!user) return;
-            
-            const newName = prompt('Novo nome:', user.name);
+        async function editUser(userId, currentName) {
+            const newName = prompt('Novo nome:', currentName);
             if (newName && newName.trim()) {
-                user.name = newName.trim();
-                loadUsersList();
-                populateVendedorSelect();
-                
-                // Atualizar dados se for o usuário atual
-                if (currentUser && currentUser.username === username) {
-                    currentUser.name = newName.trim();
-                    document.getElementById('vendedor-name').textContent = newName.trim();
+                try {
+                    const { db, doc, updateDoc } = window.firebase;
+                    await updateDoc(doc(db, 'users', userId), {
+                        name: newName.trim()
+                    });
+                    
+                    console.log('✅ Nome atualizado!');
+                } catch (error) {
+                    console.error('❌ Erro ao editar usuário:', error);
+                    alert('Erro ao editar usuário. Tente novamente.');
                 }
             }
         }
 
-        function deleteUser(username) {
+        async function deleteUser(userId) {
             if (confirm('Tem certeza que deseja excluir este vendedor? Suas vendas serão mantidas.')) {
-                const index = users.findIndex(u => u.username === username);
-                if (index > -1) {
-                    users.splice(index, 1);
-                    loadUsersList();
-                    populateVendedorSelect();
+                try {
+                    const { db, doc, deleteDoc } = window.firebase;
+                    await deleteDoc(doc(db, 'users', userId));
+                    console.log('✅ Vendedor excluído!');
+                } catch (error) {
+                    console.error('❌ Erro ao excluir vendedor:', error);
+                    alert('Erro ao excluir vendedor. Tente novamente.');
                 }
             }
         }
@@ -1367,24 +1607,23 @@
         // Modal regras de comissão
         function openCommissionRulesModal() {
             document.getElementById('commissionRulesModal').style.display = 'block';
-            loadCommissionRules();
         }
 
         function closeCommissionRulesModal() {
             document.getElementById('commissionRulesModal').style.display = 'none';
         }
 
-        function loadCommissionRules() {
+        function loadCommissionRulesList() {
             const container = document.getElementById('rules-list');
-            container.innerHTML = commissionRules.map((rule, index) => `
+            container.innerHTML = commissionRules.map((rule) => `
                 <div class="rule-item">
                     <span><strong>${rule.name}:</strong> ${rule.percentage}% em ${rule.installments}x</span>
-                    <button class="btn btn-danger btn-small" onclick="deleteCommissionRule(${index})">Excluir</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCommissionRule('${rule.id}')">Excluir</button>
                 </div>
             `).join('');
         }
 
-        function addCommissionRule() {
+        async function addCommissionRule() {
             const name = document.getElementById('rule-name').value;
             const percentage = parseFloat(document.getElementById('rule-percentage').value);
             const installments = parseInt(document.getElementById('rule-installments').value);
@@ -1394,17 +1633,35 @@
                 return;
             }
             
-            commissionRules.push({ name, percentage, installments });
-            document.getElementById('rule-name').value = '';
-            document.getElementById('rule-percentage').value = '';
-            document.getElementById('rule-installments').value = '1';
-            loadCommissionRules();
+            try {
+                const { db, collection, addDoc } = window.firebase;
+                await addDoc(collection(db, 'commissionRules'), {
+                    name: name,
+                    percentage: percentage,
+                    installments: installments
+                });
+                
+                document.getElementById('rule-name').value = '';
+                document.getElementById('rule-percentage').value = '';
+                document.getElementById('rule-installments').value = '1';
+                
+                console.log('✅ Regra adicionada!');
+            } catch (error) {
+                console.error('❌ Erro ao adicionar regra:', error);
+                alert('Erro ao adicionar regra. Tente novamente.');
+            }
         }
 
-        function deleteCommissionRule(index) {
+        async function deleteCommissionRule(ruleId) {
             if (confirm('Tem certeza que deseja excluir esta regra?')) {
-                commissionRules.splice(index, 1);
-                loadCommissionRules();
+                try {
+                    const { db, doc, deleteDoc } = window.firebase;
+                    await deleteDoc(doc(db, 'commissionRules', ruleId));
+                    console.log('✅ Regra excluída!');
+                } catch (error) {
+                    console.error('❌ Erro ao excluir regra:', error);
+                    alert('Erro ao excluir regra. Tente novamente.');
+                }
             }
         }
 
@@ -1448,6 +1705,12 @@
             }
         }
 
+        function showError(message) {
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
         // Event listeners
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -1464,41 +1727,6 @@
                 }
             });
         }
-
-        // Dados de exemplo para demonstração
-        function generateSampleData() {
-            const months = ['2024-01-15', '2024-02-20', '2024-03-10', '2024-04-05', '2024-05-12'];
-            const vendedores = ['joao', 'maria', 'pedro'];
-            const clientes = ['Empresa ABC', 'Empresa XYZ', 'Empresa DEF', 'Empresa GHI', 'Empresa JKL'];
-            
-            salesData = [];
-            
-            months.forEach(month => {
-                vendedores.forEach(vendedor => {
-                    const numVendas = Math.floor(Math.random() * 3) + 1;
-                    for (let i = 0; i < numVendas; i++) {
-                        const valor = Math.floor(Math.random() * 15000) + 1000;
-                        const comissaoPerc = valor > 10000 ? 10 : valor > 5000 ? 7 : 5;
-                        const installments = Math.floor(Math.random() * 10) + 1; // 1 a 10 parcelas
-                        const paidInstallments = Math.floor(Math.random() * (installments + 1));
-                        
-                        salesData.push({
-                            data: new Date(month),
-                            vendedor: vendedor,
-                            cliente: clientes[Math.floor(Math.random() * clientes.length)],
-                            valor: valor,
-                            comissaoPerc: comissaoPerc,
-                            comissaoValor: (valor * comissaoPerc) / 100,
-                            installments: installments,
-                            paidInstallments: paidInstallments
-                        });
-                    }
-                });
-            });
-        }
-
-        // Gerar dados de exemplo
-        generateSampleData();
     </script>
 </body>
 </html>
