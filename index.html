@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Comissões</title>
+    <title>Sistema de Comissões - Versão Completa</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -21,8 +22,8 @@
         }
 
         .container {
-            width: 90%;
-            max-width: 1200px;
+            width: 95%;
+            max-width: 1400px;
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
@@ -46,6 +47,12 @@
         .form-group {
             margin-bottom: 20px;
             text-align: left;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
         label {
@@ -86,17 +93,11 @@
             transform: translateY(-2px);
         }
 
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+        .btn-success { background: #28a745; }
+        .btn-info { background: #17a2b8; }
+        .btn-warning { background: #ffc107; color: #212529; }
 
         .dashboard {
             display: none;
@@ -120,7 +121,7 @@
 
         .cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -131,11 +132,24 @@
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .card h3 {
             color: #495057;
             margin-bottom: 10px;
+            font-size: 1rem;
         }
 
         .card .value {
@@ -144,17 +158,38 @@
             color: #667eea;
         }
 
-        .sales-section, .ranking-section, .admin-section {
+        .card .subtitle {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 8px;
+        }
+
+        .card.success .value { color: #28a745; }
+        .card.warning .value { color: #ffc107; }
+        .card.danger .value { color: #dc3545; }
+
+        .section {
             background: #f8f9fa;
             padding: 25px;
             border-radius: 15px;
             margin-bottom: 20px;
         }
 
+        .section h2 {
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .sales-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
         }
 
         .sales-table th,
@@ -182,12 +217,14 @@
 
         .modal-content {
             background: white;
-            margin: 5% auto;
+            margin: 3% auto;
             padding: 30px;
             border-radius: 15px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .close {
@@ -212,36 +249,144 @@
             margin-top: 10px;
         }
 
+        .ranking-container {
+            display: grid;
+            gap: 15px;
+        }
+
         .ranking-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
+            padding: 20px;
             margin-bottom: 10px;
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ranking-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
 
         .ranking-item.current-user {
             border-left-color: #28a745;
-            background: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+
+        .ranking-item.gold {
+            border-left-color: #ffd700;
+            background: linear-gradient(135deg, #fff8dc 0%, #f0e68c 100%);
+        }
+
+        .ranking-item.silver {
+            border-left-color: #c0c0c0;
+            background: linear-gradient(135deg, #f8f8ff 0%, #e6e6fa 100%);
+        }
+
+        .ranking-item.bronze {
+            border-left-color: #cd7f32;
+            background: linear-gradient(135deg, #fdf5e6 0%, #f5deb3 100%);
         }
 
         .position {
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: #667eea;
+            margin-right: 15px;
+            min-width: 40px;
         }
 
-        .commission-rules {
+        .medal {
+            font-size: 1.8rem;
+            margin-right: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pago {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pendente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-parcial {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .installment-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .user-management {
             background: #e7f3ff;
             padding: 20px;
             border-radius: 10px;
             margin: 20px 0;
         }
 
-        .rule-item {
+        .user-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -249,12 +394,6 @@
             margin: 5px 0;
             background: white;
             border-radius: 5px;
-        }
-
-        .btn-small {
-            padding: 5px 10px;
-            font-size: 12px;
-            margin-left: 10px;
         }
 
         @media (max-width: 768px) {
@@ -273,6 +412,10 @@
             }
             
             .cards-container {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2 {
                 grid-template-columns: 1fr;
             }
         }
@@ -311,7 +454,7 @@
         <div id="vendedor-dashboard" class="dashboard">
             <div class="header">
                 <div>
-                    <h1>Dashboard - <span id="vendedor-name"></span></h1>
+                    <h1>💼 Dashboard - <span id="vendedor-name"></span></h1>
                 </div>
                 <div class="user-info">
                     <button class="btn btn-danger" onclick="logout()">Sair</button>
@@ -320,21 +463,53 @@
 
             <div class="cards-container">
                 <div class="card">
-                    <h3>Total de Vendas</h3>
-                    <div class="value" id="total-vendas">0</div>
+                    <h3>💰 Total de Comissões</h3>
+                    <div class="value" id="total-comissoes-vendedor">R$ 0,00</div>
+                    <div class="subtitle">Valor total gerado</div>
+                </div>
+                <div class="card success">
+                    <h3>✅ Comissões Recebidas</h3>
+                    <div class="value" id="comissoes-pagas-vendedor">R$ 0,00</div>
+                    <div class="subtitle">Já recebido</div>
+                </div>
+                <div class="card warning">
+                    <h3>⏳ Pendentes</h3>
+                    <div class="value" id="comissoes-pendentes-vendedor">R$ 0,00</div>
+                    <div class="subtitle">A receber</div>
                 </div>
                 <div class="card">
-                    <h3>Comissão Total</h3>
-                    <div class="value" id="total-comissao">R$ 0,00</div>
-                </div>
-                <div class="card">
-                    <h3>Posição no Ranking</h3>
+                    <h3>🏆 Posição no Ranking</h3>
                     <div class="value" id="posicao-ranking">-</div>
+                    <div class="subtitle">Na equipe</div>
+                </div>
+                <div class="card">
+                    <h3>📈 Total de Vendas</h3>
+                    <div class="value" id="total-vendas-vendedor">0</div>
+                    <div class="subtitle">Vendas realizadas</div>
+                </div>
+                <div class="card">
+                    <h3>💎 Ticket Médio</h3>
+                    <div class="value" id="ticket-medio-vendedor">R$ 0,00</div>
+                    <div class="subtitle">Valor médio por venda</div>
                 </div>
             </div>
 
-            <div class="sales-section">
-                <h2>Minhas Vendas</h2>
+            <div class="grid-2">
+                <div class="section">
+                    <h2>📊 Evolução Mensal</h2>
+                    <div class="chart-container">
+                        <canvas id="vendedor-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>🏆 Ranking da Equipe</h2>
+                    <div id="ranking-list" class="ranking-container"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📋 Minhas Vendas</h2>
                 <table class="sales-table">
                     <thead>
                         <tr>
@@ -342,19 +517,13 @@
                             <th>Cliente</th>
                             <th>Valor</th>
                             <th>Comissão</th>
+                            <th>Status</th>
+                            <th>Parcelas</th>
                         </tr>
                     </thead>
                     <tbody id="vendas-vendedor">
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #666;">Nenhuma venda encontrada</td>
-                        </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <div class="ranking-section">
-                <h2>Ranking da Equipe</h2>
-                <div id="ranking-list"></div>
             </div>
         </div>
 
@@ -362,32 +531,58 @@
         <div id="admin-dashboard" class="dashboard">
             <div class="header">
                 <div>
-                    <h1>Painel Administrativo</h1>
+                    <h1>⚙️ Painel Administrativo</h1>
                 </div>
                 <div class="user-info">
                     <button class="btn btn-success" onclick="openNewSaleModal()">+ Nova Venda</button>
-                    <button class="btn btn-secondary" onclick="openCommissionRulesModal()">Regras de Comissão</button>
+                    <button class="btn btn-info" onclick="openUserManagementModal()">👥 Vendedores</button>
+                    <button class="btn btn-secondary" onclick="openCommissionRulesModal()">📋 Regras</button>
                     <button class="btn btn-danger" onclick="logout()">Sair</button>
                 </div>
             </div>
 
             <div class="cards-container">
                 <div class="card">
-                    <h3>Total Geral de Vendas</h3>
+                    <h3>📊 Total Geral de Vendas</h3>
                     <div class="value" id="admin-total-vendas">0</div>
+                    <div class="subtitle">Vendas realizadas</div>
+                </div>
+                <div class="card success">
+                    <h3>💰 Faturamento Total</h3>
+                    <div class="value" id="admin-faturamento-total">R$ 0,00</div>
+                    <div class="subtitle">Valor total vendido</div>
                 </div>
                 <div class="card">
-                    <h3>Comissões Pagas</h3>
+                    <h3>💎 Comissões Pagas</h3>
                     <div class="value" id="admin-total-comissoes">R$ 0,00</div>
+                    <div class="subtitle">Já pagas</div>
+                </div>
+                <div class="card warning">
+                    <h3>⏳ Comissões Pendentes</h3>
+                    <div class="value" id="admin-comissoes-pendentes">R$ 0,00</div>
+                    <div class="subtitle">A pagar</div>
                 </div>
                 <div class="card">
-                    <h3>Vendedores Ativos</h3>
+                    <h3>👥 Vendedores Ativos</h3>
                     <div class="value" id="admin-vendedores-ativos">0</div>
+                    <div class="subtitle">Com vendas no mês</div>
+                </div>
+                <div class="card">
+                    <h3>💰 Ticket Médio</h3>
+                    <div class="value" id="admin-ticket-medio">R$ 0,00</div>
+                    <div class="subtitle">Valor médio por venda</div>
                 </div>
             </div>
 
-            <div class="admin-section">
-                <h2>Todas as Vendas</h2>
+            <div class="section">
+                <h2>📈 Panorama de Vendas</h2>
+                <div class="chart-container">
+                    <canvas id="admin-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📋 Todas as Vendas</h2>
                 <table class="sales-table">
                     <thead>
                         <tr>
@@ -396,6 +591,8 @@
                             <th>Cliente</th>
                             <th>Valor</th>
                             <th>Comissão</th>
+                            <th>Status</th>
+                            <th>Parcelas</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -404,9 +601,9 @@
                 </table>
             </div>
 
-            <div class="ranking-section">
-                <h2>Ranking Completo</h2>
-                <div id="admin-ranking-list"></div>
+            <div class="section">
+                <h2>🏆 Ranking Completo</h2>
+                <div id="admin-ranking-list" class="ranking-container"></div>
             </div>
         </div>
     </div>
@@ -415,7 +612,7 @@
     <div id="newSaleModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeNewSaleModal()">&times;</span>
-            <h2>Nova Venda</h2>
+            <h2>💰 Nova Venda</h2>
             <div class="form-group">
                 <label for="vendedor-select">Vendedor:</label>
                 <select id="vendedor-select"></select>
@@ -424,15 +621,65 @@
                 <label for="cliente-input">Cliente:</label>
                 <input type="text" id="cliente-input" placeholder="Nome do cliente">
             </div>
-            <div class="form-group">
-                <label for="valor-input">Valor da Venda:</label>
-                <input type="number" id="valor-input" placeholder="0,00" step="0.01">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor-input">Valor da Venda:</label>
+                    <input type="number" id="valor-input" placeholder="0,00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="comissao-input">% Comissão:</label>
+                    <input type="number" id="comissao-input" placeholder="5" step="0.1" min="0" max="100">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="comissao-input">% Comissão:</label>
-                <input type="number" id="comissao-input" placeholder="5" step="0.1" min="0" max="100">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="parcelas-input">Número de Parcelas:</label>
+                    <select id="parcelas-input">
+                        <option value="1">À vista (1x)</option>
+                        <option value="2">2 parcelas</option>
+                        <option value="3">3 parcelas</option>
+                        <option value="4">4 parcelas</option>
+                        <option value="5">5 parcelas</option>
+                        <option value="6">6 parcelas</option>
+                        <option value="12">12 parcelas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="status-input">Status:</label>
+                    <select id="status-input">
+                        <option value="pendente">Pendente</option>
+                        <option value="pago">Pago</option>
+                    </select>
+                </div>
             </div>
             <button class="btn" onclick="addSale()">Adicionar Venda</button>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciar Vendedores -->
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUserManagementModal()">&times;</span>
+            <h2>👥 Gerenciar Vendedores</h2>
+            <div class="user-management">
+                <div id="users-list"></div>
+                <h3>Novo Vendedor</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new-user-name">Nome Completo:</label>
+                        <input type="text" id="new-user-name" placeholder="Ex: João Silva">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-username">Nome de Usuário:</label>
+                        <input type="text" id="new-username" placeholder="Ex: joao">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">Senha:</label>
+                    <input type="password" id="new-password" placeholder="Senha padrão">
+                </div>
+                <button class="btn btn-success" onclick="addUser()">Adicionar Vendedor</button>
+            </div>
         </div>
     </div>
 
@@ -440,7 +687,7 @@
     <div id="commissionRulesModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeCommissionRulesModal()">&times;</span>
-            <h2>Regras de Comissão</h2>
+            <h2>📋 Regras de Comissão</h2>
             <div class="commission-rules">
                 <div id="rules-list"></div>
                 <h3>Nova Regra</h3>
@@ -448,9 +695,21 @@
                     <label for="rule-name">Nome da Regra:</label>
                     <input type="text" id="rule-name" placeholder="Ex: Vendas até R$ 1000">
                 </div>
-                <div class="form-group">
-                    <label for="rule-percentage">Percentual (%):</label>
-                    <input type="number" id="rule-percentage" placeholder="5" step="0.1" min="0" max="100">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rule-percentage">Percentual (%):</label>
+                        <input type="number" id="rule-percentage" placeholder="5" step="0.1" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="rule-installments">Parcelas de Comissão:</label>
+                        <select id="rule-installments">
+                            <option value="1">À vista (1x)</option>
+                            <option value="2">2 parcelas</option>
+                            <option value="3">3 parcelas</option>
+                            <option value="4">4 parcelas</option>
+                            <option value="6">6 parcelas</option>
+                        </select>
+                    </div>
                 </div>
                 <button class="btn btn-success" onclick="addCommissionRule()">Adicionar Regra</button>
             </div>
@@ -458,7 +717,7 @@
     </div>
 
     <script>
-        // Dados do sistema (simulando banco de dados)
+        // Dados do sistema
         let currentUser = null;
         let salesData = [];
         let users = [
@@ -468,10 +727,13 @@
             { username: 'admin', password: 'admin123', type: 'admin', name: 'Administrador' }
         ];
         let commissionRules = [
-            { name: 'Padrão', percentage: 5 },
-            { name: 'Vendas acima de R$ 5000', percentage: 7 },
-            { name: 'Vendas acima de R$ 10000', percentage: 10 }
+            { name: 'Padrão', percentage: 5, installments: 1 },
+            { name: 'Vendas acima de R$ 5000', percentage: 7, installments: 2 },
+            { name: 'Vendas acima de R$ 10000', percentage: 10, installments: 3 }
         ];
+
+        let vendedorChart = null;
+        let adminChart = null;
 
         // Função de login
         function login() {
@@ -513,6 +775,16 @@
             // Limpar campos
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+            
+            // Destruir gráficos
+            if (vendedorChart) {
+                vendedorChart.destroy();
+                vendedorChart = null;
+            }
+            if (adminChart) {
+                adminChart.destroy();
+                adminChart = null;
+            }
         }
 
         // Mostrar dashboard do vendedor
@@ -523,6 +795,7 @@
             updateVendedorStats();
             loadVendedorSales();
             loadRanking();
+            createVendedorChart();
         }
 
         // Mostrar dashboard do admin
@@ -533,16 +806,25 @@
             loadAllSales();
             loadAdminRanking();
             populateVendedorSelect();
+            createAdminChart();
         }
 
         // Atualizar estatísticas do vendedor
         function updateVendedorStats() {
             const vendedorSales = salesData.filter(sale => sale.vendedor === currentUser.username);
             const totalVendas = vendedorSales.length;
-            const totalComissao = vendedorSales.reduce((sum, sale) => sum + sale.comissaoValor, 0);
+            const totalComissoes = vendedorSales.reduce((sum, sale) => sum + sale.comissaoValor, 0);
+            const comissoesPagas = vendedorSales.reduce((sum, sale) => 
+                sum + (sale.paidInstallments || 0) * (sale.comissaoValor / sale.installments), 0);
+            const comissoesPendentes = totalComissoes - comissoesPagas;
+            const totalVendido = vendedorSales.reduce((sum, sale) => sum + sale.valor, 0);
+            const ticketMedio = totalVendas > 0 ? totalVendido / totalVendas : 0;
             
-            document.getElementById('total-vendas').textContent = totalVendas;
-            document.getElementById('total-comissao').textContent = formatCurrency(totalComissao);
+            document.getElementById('total-comissoes-vendedor').textContent = formatCurrency(totalComissoes);
+            document.getElementById('comissoes-pagas-vendedor').textContent = formatCurrency(comissoesPagas);
+            document.getElementById('comissoes-pendentes-vendedor').textContent = formatCurrency(comissoesPendentes);
+            document.getElementById('total-vendas-vendedor').textContent = totalVendas;
+            document.getElementById('ticket-medio-vendedor').textContent = formatCurrency(ticketMedio);
             
             // Calcular posição no ranking
             const ranking = calculateRanking();
@@ -556,18 +838,29 @@
             const vendedorSales = salesData.filter(sale => sale.vendedor === currentUser.username);
             
             if (vendedorSales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666;">Nenhuma venda encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">Nenhuma venda encontrada</td></tr>';
                 return;
             }
             
-            tbody.innerHTML = vendedorSales.map(sale => `
-                <tr>
-                    <td>${formatDate(sale.data)}</td>
-                    <td>${sale.cliente}</td>
-                    <td>${formatCurrency(sale.valor)}</td>
-                    <td>${formatCurrency(sale.comissaoValor)} (${sale.comissaoPerc}%)</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = vendedorSales.map(sale => {
+                const paidInstallments = sale.paidInstallments || 0;
+                const totalInstallments = sale.installments || 1;
+                const status = getPaymentStatus(paidInstallments, totalInstallments);
+                
+                return `
+                    <tr>
+                        <td>${formatDate(sale.data)}</td>
+                        <td>${sale.cliente}</td>
+                        <td>${formatCurrency(sale.valor)}</td>
+                        <td>${formatCurrency(sale.comissaoValor)} (${sale.comissaoPerc}%)</td>
+                        <td><span class="status-badge status-${status.class}">${status.text}</span></td>
+                        <td>
+                            <div>${paidInstallments}/${totalInstallments}</div>
+                            <div class="installment-info">${formatCurrency(sale.comissaoValor / totalInstallments)} por parcela</div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Carregar ranking
@@ -578,16 +871,26 @@
             container.innerHTML = ranking.map((item, index) => {
                 const isCurrentUser = item.vendedor === currentUser.username;
                 const displayName = isCurrentUser ? currentUser.name : `Vendedor ${String.fromCharCode(65 + index)}`;
+                const medal = getMedal(index);
+                const rankClass = getRankClass(index);
+                const maxComissao = ranking.length > 0 ? ranking[0].totalComissao : 1;
+                const progressPercent = (item.totalComissao / maxComissao) * 100;
                 
                 return `
-                    <div class="ranking-item ${isCurrentUser ? 'current-user' : ''}">
-                        <div>
-                            <span class="position">${index + 1}º</span>
-                            <strong>${displayName}</strong>
+                    <div class="ranking-item ${isCurrentUser ? 'current-user' : ''} ${rankClass}">
+                        <div style="display: flex; align-items: center;">
+                            <span class="medal">${medal}</span>
+                            <div>
+                                <span class="position">${index + 1}º</span>
+                                <strong>${displayName}</strong>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <span>${item.totalVendas} vendas</span> | 
-                            <span>${formatCurrency(item.totalComissao)}</span>
+                        <div style="text-align: right;">
+                            <div><strong>${formatCurrency(item.totalComissao)}</strong></div>
+                            <div style="font-size: 0.9rem; color: #666;">${item.totalVendas} vendas</div>
                         </div>
                     </div>
                 `;
@@ -597,12 +900,20 @@
         // Atualizar estatísticas do admin
         function updateAdminStats() {
             const totalVendas = salesData.length;
+            const faturamentoTotal = salesData.reduce((sum, sale) => sum + sale.valor, 0);
             const totalComissoes = salesData.reduce((sum, sale) => sum + sale.comissaoValor, 0);
+            const comissoesPagas = salesData.reduce((sum, sale) => 
+                sum + (sale.paidInstallments || 0) * (sale.comissaoValor / sale.installments), 0);
+            const comissoesPendentes = totalComissoes - comissoesPagas;
             const vendedoresAtivos = new Set(salesData.map(sale => sale.vendedor)).size;
+            const ticketMedio = totalVendas > 0 ? faturamentoTotal / totalVendas : 0;
             
             document.getElementById('admin-total-vendas').textContent = totalVendas;
-            document.getElementById('admin-total-comissoes').textContent = formatCurrency(totalComissoes);
+            document.getElementById('admin-faturamento-total').textContent = formatCurrency(faturamentoTotal);
+            document.getElementById('admin-total-comissoes').textContent = formatCurrency(comissoesPagas);
+            document.getElementById('admin-comissoes-pendentes').textContent = formatCurrency(comissoesPendentes);
             document.getElementById('admin-vendedores-ativos').textContent = vendedoresAtivos;
+            document.getElementById('admin-ticket-medio').textContent = formatCurrency(ticketMedio);
         }
 
         // Carregar todas as vendas (admin)
@@ -610,12 +921,16 @@
             const tbody = document.getElementById('todas-vendas');
             
             if (salesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">Nenhuma venda encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">Nenhuma venda encontrada</td></tr>';
                 return;
             }
             
             tbody.innerHTML = salesData.map((sale, index) => {
                 const vendedorName = users.find(u => u.username === sale.vendedor)?.name || sale.vendedor;
+                const paidInstallments = sale.paidInstallments || 0;
+                const totalInstallments = sale.installments || 1;
+                const status = getPaymentStatus(paidInstallments, totalInstallments);
+                
                 return `
                     <tr>
                         <td>${formatDate(sale.data)}</td>
@@ -623,6 +938,11 @@
                         <td>${sale.cliente}</td>
                         <td>${formatCurrency(sale.valor)}</td>
                         <td>${formatCurrency(sale.comissaoValor)} (${sale.comissaoPerc}%)</td>
+                        <td><span class="status-badge status-${status.class}">${status.text}</span></td>
+                        <td>
+                            <div>${paidInstallments}/${totalInstallments}</div>
+                            <button class="btn btn-small btn-info" onclick="updateInstallments(${index})">Atualizar</button>
+                        </td>
                         <td>
                             <button class="btn btn-danger btn-small" onclick="deleteSale(${index})">Excluir</button>
                         </td>
@@ -638,16 +958,26 @@
             
             container.innerHTML = ranking.map((item, index) => {
                 const vendedorName = users.find(u => u.username === item.vendedor)?.name || item.vendedor;
+                const medal = getMedal(index);
+                const rankClass = getRankClass(index);
+                const maxComissao = ranking.length > 0 ? ranking[0].totalComissao : 1;
+                const progressPercent = (item.totalComissao / maxComissao) * 100;
                 
                 return `
-                    <div class="ranking-item">
-                        <div>
-                            <span class="position">${index + 1}º</span>
-                            <strong>${vendedorName}</strong>
+                    <div class="ranking-item ${rankClass}">
+                        <div style="display: flex; align-items: center;">
+                            <span class="medal">${medal}</span>
+                            <div>
+                                <span class="position">${index + 1}º</span>
+                                <strong>${vendedorName}</strong>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <span>${item.totalVendas} vendas</span> | 
-                            <span>${formatCurrency(item.totalComissao)}</span>
+                        <div style="text-align: right;">
+                            <div><strong>${formatCurrency(item.totalComissao)}</strong></div>
+                            <div style="font-size: 0.9rem; color: #666;">${item.totalVendas} vendas</div>
                         </div>
                     </div>
                 `;
@@ -675,9 +1005,205 @@
                 .sort((a, b) => b.totalComissao - a.totalComissao);
         }
 
+        // Criar gráfico do vendedor
+        function createVendedorChart() {
+            const ctx = document.getElementById('vendedor-chart').getContext('2d');
+            const vendedorSales = salesData.filter(sale => sale.vendedor === currentUser.username);
+            
+            // Agrupar vendas por mês
+            const monthlyData = {};
+            const teamMonthlyData = {};
+            
+            // Dados do vendedor atual
+            vendedorSales.forEach(sale => {
+                const month = new Date(sale.data).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                monthlyData[month] = (monthlyData[month] || 0) + sale.comissaoValor;
+            });
+            
+            // Dados da equipe (média)
+            salesData.forEach(sale => {
+                const month = new Date(sale.data).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                if (!teamMonthlyData[month]) teamMonthlyData[month] = [];
+                teamMonthlyData[month].push(sale.comissaoValor);
+            });
+            
+            // Calcular média da equipe por mês
+            Object.keys(teamMonthlyData).forEach(month => {
+                const vendedoresNoMes = new Set();
+                salesData.filter(sale => {
+                    const saleMonth = new Date(sale.data).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                    return saleMonth === month;
+                }).forEach(sale => vendedoresNoMes.add(sale.vendedor));
+                
+                const totalVendedores = vendedoresNoMes.size;
+                const totalComissoes = teamMonthlyData[month].reduce((sum, val) => sum + val, 0);
+                teamMonthlyData[month] = totalVendedores > 0 ? totalComissoes / totalVendedores : 0;
+            });
+            
+            const months = [...new Set([...Object.keys(monthlyData), ...Object.keys(teamMonthlyData)])].sort();
+            
+            if (vendedorChart) {
+                vendedorChart.destroy();
+            }
+            
+            vendedorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Suas Comissões',
+                            data: months.map(month => monthlyData[month] || 0),
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Média da Equipe',
+                            data: months.map(month => teamMonthlyData[month] || 0),
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolução das Comissões'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Criar gráfico do admin
+        function createAdminChart() {
+            const ctx = document.getElementById('admin-chart').getContext('2d');
+            
+            // Agrupar vendas por mês
+            const monthlyData = {};
+            const monthlyCount = {};
+            
+            salesData.forEach(sale => {
+                const month = new Date(sale.data).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                monthlyData[month] = (monthlyData[month] || 0) + sale.valor;
+                monthlyCount[month] = (monthlyCount[month] || 0) + 1;
+            });
+            
+            const months = Object.keys(monthlyData).sort();
+            
+            if (adminChart) {
+                adminChart.destroy();
+            }
+            
+            adminChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Faturamento (R$)',
+                            data: months.map(month => monthlyData[month] || 0),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Quantidade de Vendas',
+                            data: months.map(month => monthlyCount[month] || 0),
+                            type: 'line',
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Panorama de Vendas Mensais'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    }
+                }
+            });
+        }
+
+        // Atualizar parcelas de comissão
+        function updateInstallments(index) {
+            const sale = salesData[index];
+            const currentPaid = sale.paidInstallments || 0;
+            const total = sale.installments || 1;
+            
+            const newPaid = prompt(`Quantas parcelas foram pagas?\nAtual: ${currentPaid}/${total}`, currentPaid);
+            
+            if (newPaid !== null && !isNaN(newPaid) && newPaid >= 0 && newPaid <= total) {
+                salesData[index].paidInstallments = parseInt(newPaid);
+                updateAdminStats();
+                loadAllSales();
+                loadAdminRanking();
+            }
+        }
+
         // Abrir modal nova venda
         function openNewSaleModal() {
             document.getElementById('newSaleModal').style.display = 'block';
+            populateVendedorSelect();
         }
 
         // Fechar modal nova venda
@@ -692,6 +1218,8 @@
             document.getElementById('cliente-input').value = '';
             document.getElementById('valor-input').value = '';
             document.getElementById('comissao-input').value = '';
+            document.getElementById('parcelas-input').value = '1';
+            document.getElementById('status-input').value = 'pendente';
         }
 
         // Popular select de vendedores
@@ -709,13 +1237,16 @@
             const cliente = document.getElementById('cliente-input').value;
             const valor = parseFloat(document.getElementById('valor-input').value);
             const comissaoPerc = parseFloat(document.getElementById('comissao-input').value);
+            const parcelas = parseInt(document.getElementById('parcelas-input').value);
+            const status = document.getElementById('status-input').value;
             
-            if (!vendedor || !cliente || !valor || !comissaoPerc) {
+            if (!vendedor || !cliente || !valor || !comissaoPerc || !parcelas) {
                 alert('Preencha todos os campos!');
                 return;
             }
             
             const comissaoValor = (valor * comissaoPerc) / 100;
+            const paidInstallments = status === 'pago' ? parcelas : 0;
             
             const newSale = {
                 data: new Date(),
@@ -723,7 +1254,9 @@
                 cliente: cliente,
                 valor: valor,
                 comissaoPerc: comissaoPerc,
-                comissaoValor: comissaoValor
+                comissaoValor: comissaoValor,
+                installments: parcelas,
+                paidInstallments: paidInstallments
             };
             
             salesData.push(newSale);
@@ -731,6 +1264,7 @@
             updateAdminStats();
             loadAllSales();
             loadAdminRanking();
+            createAdminChart();
         }
 
         // Excluir venda
@@ -740,6 +1274,93 @@
                 updateAdminStats();
                 loadAllSales();
                 loadAdminRanking();
+                createAdminChart();
+            }
+        }
+
+        // Modal gerenciar usuários
+        function openUserManagementModal() {
+            document.getElementById('userManagementModal').style.display = 'block';
+            loadUsersList();
+        }
+
+        function closeUserManagementModal() {
+            document.getElementById('userManagementModal').style.display = 'none';
+        }
+
+        function loadUsersList() {
+            const container = document.getElementById('users-list');
+            const vendedores = users.filter(u => u.type === 'vendedor');
+            
+            container.innerHTML = vendedores.map((user, index) => `
+                <div class="user-item">
+                    <div>
+                        <strong>${user.name}</strong> (${user.username})
+                    </div>
+                    <div>
+                        <button class="btn btn-info btn-small" onclick="editUser('${user.username}')">Editar</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteUser('${user.username}')">Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addUser() {
+            const name = document.getElementById('new-user-name').value;
+            const username = document.getElementById('new-username').value;
+            const password = document.getElementById('new-password').value;
+            
+            if (!name || !username || !password) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (users.find(u => u.username === username)) {
+                alert('Nome de usuário já existe!');
+                return;
+            }
+            
+            users.push({
+                username: username,
+                password: password,
+                type: 'vendedor',
+                name: name
+            });
+            
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+            
+            loadUsersList();
+            populateVendedorSelect();
+        }
+
+        function editUser(username) {
+            const user = users.find(u => u.username === username);
+            if (!user) return;
+            
+            const newName = prompt('Novo nome:', user.name);
+            if (newName && newName.trim()) {
+                user.name = newName.trim();
+                loadUsersList();
+                populateVendedorSelect();
+                
+                // Atualizar dados se for o usuário atual
+                if (currentUser && currentUser.username === username) {
+                    currentUser.name = newName.trim();
+                    document.getElementById('vendedor-name').textContent = newName.trim();
+                }
+            }
+        }
+
+        function deleteUser(username) {
+            if (confirm('Tem certeza que deseja excluir este vendedor? Suas vendas serão mantidas.')) {
+                const index = users.findIndex(u => u.username === username);
+                if (index > -1) {
+                    users.splice(index, 1);
+                    loadUsersList();
+                    populateVendedorSelect();
+                }
             }
         }
 
@@ -757,7 +1378,7 @@
             const container = document.getElementById('rules-list');
             container.innerHTML = commissionRules.map((rule, index) => `
                 <div class="rule-item">
-                    <span><strong>${rule.name}:</strong> ${rule.percentage}%</span>
+                    <span><strong>${rule.name}:</strong> ${rule.percentage}% em ${rule.installments}x</span>
                     <button class="btn btn-danger btn-small" onclick="deleteCommissionRule(${index})">Excluir</button>
                 </div>
             `).join('');
@@ -766,15 +1387,17 @@
         function addCommissionRule() {
             const name = document.getElementById('rule-name').value;
             const percentage = parseFloat(document.getElementById('rule-percentage').value);
+            const installments = parseInt(document.getElementById('rule-installments').value);
             
-            if (!name || !percentage) {
+            if (!name || !percentage || !installments) {
                 alert('Preencha todos os campos!');
                 return;
             }
             
-            commissionRules.push({ name, percentage });
+            commissionRules.push({ name, percentage, installments });
             document.getElementById('rule-name').value = '';
             document.getElementById('rule-percentage').value = '';
+            document.getElementById('rule-installments').value = '1';
             loadCommissionRules();
         }
 
@@ -797,6 +1420,34 @@
             return new Date(date).toLocaleDateString('pt-BR');
         }
 
+        function getPaymentStatus(paid, total) {
+            if (paid === 0) {
+                return { class: 'pendente', text: 'Pendente' };
+            } else if (paid === total) {
+                return { class: 'pago', text: 'Pago' };
+            } else {
+                return { class: 'parcial', text: 'Parcial' };
+            }
+        }
+
+        function getMedal(position) {
+            switch(position) {
+                case 0: return '🥇';
+                case 1: return '🥈';
+                case 2: return '🥉';
+                default: return '🏅';
+            }
+        }
+
+        function getRankClass(position) {
+            switch(position) {
+                case 0: return 'gold';
+                case 1: return 'silver';
+                case 2: return 'bronze';
+                default: return '';
+            }
+        }
+
         // Event listeners
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -815,32 +1466,39 @@
         }
 
         // Dados de exemplo para demonstração
-        salesData = [
-            {
-                data: new Date('2024-01-15'),
-                vendedor: 'joao',
-                cliente: 'Empresa ABC',
-                valor: 5000,
-                comissaoPerc: 5,
-                comissaoValor: 250
-            },
-            {
-                data: new Date('2024-01-20'),
-                vendedor: 'maria',
-                cliente: 'Empresa XYZ',
-                valor: 8000,
-                comissaoPerc: 7,
-                comissaoValor: 560
-            },
-            {
-                data: new Date('2024-01-25'),
-                vendedor: 'joao',
-                cliente: 'Empresa DEF',
-                valor: 3000,
-                comissaoPerc: 5,
-                comissaoValor: 150
-            }
-        ];
+        function generateSampleData() {
+            const months = ['2024-01-15', '2024-02-20', '2024-03-10', '2024-04-05', '2024-05-12'];
+            const vendedores = ['joao', 'maria', 'pedro'];
+            const clientes = ['Empresa ABC', 'Empresa XYZ', 'Empresa DEF', 'Empresa GHI', 'Empresa JKL'];
+            
+            salesData = [];
+            
+            months.forEach(month => {
+                vendedores.forEach(vendedor => {
+                    const numVendas = Math.floor(Math.random() * 3) + 1;
+                    for (let i = 0; i < numVendas; i++) {
+                        const valor = Math.floor(Math.random() * 15000) + 1000;
+                        const comissaoPerc = valor > 10000 ? 10 : valor > 5000 ? 7 : 5;
+                        const installments = Math.floor(Math.random() * 6) + 1;
+                        const paidInstallments = Math.floor(Math.random() * (installments + 1));
+                        
+                        salesData.push({
+                            data: new Date(month),
+                            vendedor: vendedor,
+                            cliente: clientes[Math.floor(Math.random() * clientes.length)],
+                            valor: valor,
+                            comissaoPerc: comissaoPerc,
+                            comissaoValor: (valor * comissaoPerc) / 100,
+                            installments: installments,
+                            paidInstallments: paidInstallments
+                        });
+                    }
+                });
+            });
+        }
+
+        // Gerar dados de exemplo
+        generateSampleData();
     </script>
 </body>
 </html>
