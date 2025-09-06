@@ -1479,7 +1479,7 @@
                     for (let i = 0; i < numVendas; i++) {
                         const valor = Math.floor(Math.random() * 15000) + 1000;
                         const comissaoPerc = valor > 10000 ? 10 : valor > 5000 ? 7 : 5;
-                        const installments = Math.floor(Math.random() * 6) + 1;
+                        const installments = Math.floor(Math.random() * 10) + 1; // 1 a 10 parcelas
                         const paidInstallments = Math.floor(Math.random() * (installments + 1));
                         
                         salesData.push({
